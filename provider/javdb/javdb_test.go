@@ -1,4 +1,4 @@
-package javbus
+package javdb
 
 import (
 	"encoding/json"
@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestJavBus_GetMovieInfoByID(t *testing.T) {
+func TestJavDB_GetMovieInfoByID(t *testing.T) {
 	provider := New()
 	for _, item := range []string{
-		"SMBD-77",
-		"SSNI-776",
-		"ABP-331",
-		"CEMD-232",
+		//"BabyGotBoobs.18.12.27",
+		//"BigNaturals.BigNaturals.23.05.27 Big Tits VR",
+		"BigNaturals Big Tits VR",
+		"BabyGotBoobs Lovely In Latex",
 	} {
 		info, err := provider.GetMovieInfoByID(item)
 		data, _ := json.MarshalIndent(info, "", "\t")
@@ -25,8 +25,8 @@ func TestJavBus_GetMovieInfoByID(t *testing.T) {
 func TestJavBus_SearchMovie(t *testing.T) {
 	provider := New()
 	for _, item := range []string{
-		"SSIS-033",
-		//"MIDV-005",
+		"BigNaturals Big Tits VR",
+		"BabyGotBoobs Lovely In Latex",
 	} {
 		results, err := provider.SearchMovie(provider.NormalizeKeyword(item))
 		data, _ := json.MarshalIndent(results, "", "\t")
