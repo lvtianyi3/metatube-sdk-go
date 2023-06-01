@@ -52,7 +52,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             metatube/metatube-server:dev
-            ghcr.io/metatube-community/metatube-server:dev
+            ghcr.io/lvtianyi3/metatube-server:dev
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
