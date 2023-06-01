@@ -125,6 +125,7 @@ func (db *JavDB) GetMovieInfoByURL(rawURL string) (info *model.MovieInfo, err er
 	// Image
 	c.OnXML(`//div[@class="column column-video-cover"]/a/img`, func(e *colly.XMLElement) {
 		info.CoverURL = e.Request.AbsoluteURL(e.Attr("src"))
+		info.ThumbURL = info.CoverURL
 	})
 
 	// Fields
