@@ -56,7 +56,7 @@ jobs:
           push: true
           platforms: linux/amd64
           tags:   |
-            ghcr.io/lvtianyi3/metatube-server:dev
+            ghcr.io/lvtianyi3/metatube-sdk-go:dev
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
