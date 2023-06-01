@@ -50,7 +50,9 @@ jobs:
           file: Dockerfile
           push: true
           platforms: linux/amd64
-          tags:  ${{ steps.meta.outputs.tags }}
+          tags:   |
+            metatube/metatube-server:dev
+            ghcr.io/lvtianyi3/metatube-server:dev
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
