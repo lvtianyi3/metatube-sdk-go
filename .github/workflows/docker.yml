@@ -34,7 +34,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: metatube-community
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get Version
@@ -51,8 +51,8 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            lvtianyi3/metatube-server:dev
-            ghcr.io/lvtianyi3/metatube-server:dev
+            lvtianyi3/metatube-sdk-go:dev
+            ghcr.io/lvtianyi3/metatube-sdk-go:dev
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -65,9 +65,9 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            lvtianyi3/metatube-server:latest
-            lvtianyi3/metatube-server:${{ steps.shell.outputs.version }}
-            ghcr.io/lvtianyi3/metatube-server:latest
-            ghcr.io/lvtianyi3/metatube-server:${{ steps.shell.outputs.version }}
+            lvtianyi3/metatube-sdk-go:latest
+            lvtianyi3/metatube-sdk-go:${{ steps.shell.outputs.version }}
+            ghcr.io/lvtianyi3/metatube-sdk-go:latest
+            ghcr.io/lvtianyi3/metatube-sdk-go:${{ steps.shell.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
