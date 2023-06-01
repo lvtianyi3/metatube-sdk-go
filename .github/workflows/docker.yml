@@ -49,9 +49,9 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: |
-            metatube/metatube-server:dev
+            lvtianyi3/metatube-server:dev
             ghcr.io/lvtianyi3/metatube-server:dev
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -63,7 +63,7 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: |
             lvtianyi3/metatube-server:latest
             lvtianyi3/metatube-server:${{ steps.shell.outputs.version }}
