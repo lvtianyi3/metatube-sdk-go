@@ -50,7 +50,7 @@ func IsFC2(s string) bool {
 
 // IsSpecial returns true if the number is special compare to other regular numbers.
 func IsSpecial(s string) bool {
-	if IsUncensored(s) || IsFC2(s) {
+	if IsUncensored(s) || IsFC2(s) || IsJavDBEUNumber(s) {
 		return true
 	}
 	return regexp.
@@ -68,6 +68,14 @@ func RequireFaceDetection(s string) bool {
 		return true
 	}
 	if shiroutoRe.MatchString(s) {
+		return true
+	}
+
+	return false
+}
+
+func IsJavDBEUNumber(s string) bool {
+	if regexp.MustCompile(`^[a-zA-Z0-9]+\.\d{2}\.\d{2}\.\d{2}`).MatchString(s) {
 		return true
 	}
 	return false
