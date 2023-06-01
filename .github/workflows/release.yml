@@ -41,5 +41,5 @@ jobs:
           files: build/*
           draft: false
           prerelease: false
-          repository: metatube-community/metatube-server-releases
+          repository: lvtianyi3/metatube-sdk-go
           token: ${{ secrets.BOT_PAT }}
