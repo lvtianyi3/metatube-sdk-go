@@ -45,17 +45,12 @@ jobs:
       - name: Build and Push (dev)
         if: github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.action_user }}
         with:
-          token: ${{secrets.action_user}}
           context: .
           file: Dockerfile
           push: true
           platforms: linux/amd64
-          tags: |
-            lvtianyi3/metatube-sdk-go:dev
-            ghcr.io/lvtianyi3/metatube-sdk-go:dev
+          tags:  ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
