@@ -42,6 +42,9 @@ func (e *Engine) GetMoviePrimaryImage(name, id string, ratio, pos float64) (imag
 	if pos < 0 /* manual position disabled */ {
 		pos = defaultMoviePrimaryImagePosition
 		auto = number.RequireFaceDetection(info.Number)
+	} else {
+		//no execute
+		auto = number.IsJavDBEUNumber(info.Number)
 	}
 	return e.GetImageByURL(e.MustGetMovieProviderByName(name), url, ratio, pos, auto)
 }

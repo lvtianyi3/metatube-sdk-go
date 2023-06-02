@@ -3,6 +3,7 @@ package javdb
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"sync"
 
 	"github.com/gocolly/colly/v2"
@@ -51,7 +52,9 @@ func (db *JavDB) GetURLByID(id string) (string, error) {
 	c.OnXML(`//div[@class="movie-list h cols-4 vcols-8"]/div[@class="item"][1]/a`, func(e *colly.XMLElement) {
 		homepage = e.Request.AbsoluteURL(e.Attr("href"))
 	})
-	c.Visit(fmt.Sprintf(searchURL, id))
+
+	keyword := regexp.MustCompile(`\.\d{2}\.\d{2}\.\d{2}`).ReplaceAllString(id, "")
+	c.Visit(fmt.Sprintf(searchURL, keyword))
 	c.Wait()
 
 	if homepage == "" {
@@ -97,7 +100,7 @@ func (db *JavDB) ParseIDFromURL(rawURL string) (string, error) {
 		return "", err
 	}
 
-	id := strings.Split(number, ".")[0] + " " + title
+	id := strings.TrimSpace(number + " " + title)
 	return id, err
 }
 
@@ -185,15 +188,15 @@ func (db *JavDB) SearchMovie(keyword string) (results []*model.MovieSearchResult
 		//if id, err = db.ParseIDFromURL(homepage); err != nil {
 		//	return
 		//}
-
-		fmt.Printf("homepage : %s\n", homepage)
-
+		//fmt.Printf("homepage : %s\n", homepage)
 		var info *model.MovieInfo
 		if info, err = db.GetMovieInfoByURL(homepage); err != nil {
 			return
 		}
 		results = append(results, info.ToSearchResult())
 	})
+
+	keyword = regexp.MustCompile(`\.\d{2}\.\d{2}\.\d{2}`).ReplaceAllString(keyword, "")
 
 	for _, u := range []string{
 		fmt.Sprintf(searchURL, keyword),
