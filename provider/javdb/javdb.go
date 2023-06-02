@@ -176,7 +176,7 @@ func (db *JavDB) SearchMovie(keyword string) (results []*model.MovieSearchResult
 	c.Async = true /* ASYNC */
 
 	var mu sync.Mutex
-	c.OnXML(`//div[@class="movie-list h cols-4 vcols-8"]/div[@class="item"][position() < 6]/a`, func(e *colly.XMLElement) {
+	c.OnXML(`//div[@class="movie-list h cols-4 vcols-8"]/div[position() < 4][@class="item"]/a`, func(e *colly.XMLElement) {
 		mu.Lock()
 		defer mu.Unlock()
 		homepage := e.Request.AbsoluteURL(e.Attr("href"))
