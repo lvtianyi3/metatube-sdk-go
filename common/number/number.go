@@ -75,8 +75,5 @@ func RequireFaceDetection(s string) bool {
 }
 
 func IsJavDBEUNumber(s string) bool {
-	if regexp.MustCompile(`^[a-zA-Z0-9]+\.\d{2}\.\d{2}\.\d{2}`).MatchString(s) {
-		return true
-	}
-	return false
+	return regexp.MustCompile(`^[a-zA-Z0-9]+\.\d{2}\.\d{2}\.\d{2}`).MatchString(s)
 }
