@@ -92,7 +92,7 @@ jobs:
           platforms: linux/amd64
           tags: |
             lvtianyi3/metatube-sdk-go:latest
-            #lvtianyi3/metatube-sdk-go:${{ steps.shell.outputs.version }}
+            lvtianyi3/metatube-sdk-go:${{ steps.shell.outputs.version }}
             ghcr.io/lvtianyi3/metatube-sdk-go:latest
             ghcr.io/lvtianyi3/metatube-sdk-go:${{ steps.shell.outputs.version }}
           cache-from: type=gha
