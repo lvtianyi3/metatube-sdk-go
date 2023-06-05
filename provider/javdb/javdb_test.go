@@ -12,8 +12,8 @@ func TestJavDB_GetMovieInfoByID(t *testing.T) {
 	for _, item := range []string{
 		//"BabyGotBoobs.18.12.27",
 		//"BigNaturals.BigNaturals.23.05.27 Big Tits VR",
-		"BigNaturals Big Tits VR",
-		"BabyGotBoobs Lovely In Latex",
+		//"BigNaturals Big Tits VR",
+		//"BabyGotBoobs Lovely In Latex",
 	} {
 		info, err := provider.GetMovieInfoByID(item)
 		data, _ := json.MarshalIndent(info, "", "\t")

@@ -1,8 +1,9 @@
 package javdb
 
 import (
-	"errors"
 	"fmt"
+	"net/url"
+	"path"
 	"regexp"
 	"sync"
 
@@ -27,7 +28,7 @@ const (
 
 const (
 	baseURL   = "https://javdb.com/"
-	movieURL  = "https://www.javdb.com/ja/%s"
+	movieURL  = "https://javdb.com/v/%s"
 	searchURL = "https://javdb.com/search?q=%s&f=all"
 )
 
@@ -43,65 +44,16 @@ func (db *JavDB) NormalizeID(id string) string {
 	return id
 }
 
-func (db *JavDB) GetURLByID(id string) (string, error) {
-	c := db.ClonedCollector()
-
-	var homepage string
-	var err error = nil
-
-	c.OnXML(`//div[@class="movie-list h cols-4 vcols-8"]/div[@class="item"][1]/a`, func(e *colly.XMLElement) {
-		homepage = e.Request.AbsoluteURL(e.Attr("href"))
-	})
-
-	keyword := regexp.MustCompile(`\.\d{2}\.\d{2}\.\d{2}`).ReplaceAllString(id, "")
-	c.Visit(fmt.Sprintf(searchURL, keyword))
-	c.Wait()
-
-	if homepage == "" {
-		err = errors.New("string is empty")
-	}
-
-	return homepage, err
-
-}
 func (db *JavDB) GetMovieInfoByID(id string) (info *model.MovieInfo, err error) {
-	url, err := db.GetURLByID(id)
-	if err != nil {
-		return
-	}
-	return db.GetMovieInfoByURL(url)
+	return db.GetMovieInfoByURL(fmt.Sprintf(movieURL, id))
 }
 
 func (db *JavDB) ParseIDFromURL(rawURL string) (string, error) {
-
-	c := db.ClonedCollector()
-	var number, title string
-	var err error = nil
-
-	c.OnXML(`//nav[@class="panel movie-panel-info"]/div[@class="panel-block first-block"]/span`, func(e *colly.XMLElement) {
-		number = e.Text
-	})
-	c.OnXML(`//strong[@class="current-title"]`, func(e *colly.XMLElement) {
-		title = e.Text
-	})
-
-	c.Visit(rawURL)
-	c.Wait()
-
-	if number == "" {
-		err = errors.New("string is empty")
-	}
-
-	if title == "" {
-		err = errors.New("string is empty")
-	}
-
+	homepage, err := url.Parse(rawURL)
 	if err != nil {
 		return "", err
 	}
-
-	id := strings.TrimSpace(number + " " + title)
-	return id, err
+	return db.NormalizeID(path.Base(homepage.Path)), nil
 }
 
 func (db *JavDB) GetMovieInfoByURL(rawURL string) (info *model.MovieInfo, err error) {
