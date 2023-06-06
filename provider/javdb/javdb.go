@@ -136,11 +136,7 @@ func (db *JavDB) SearchMovie(keyword string) (results []*model.MovieSearchResult
 		defer mu.Unlock()
 		homepage := e.Request.AbsoluteURL(e.Attr("href"))
 
-		//var id string
-		//if id, err = db.ParseIDFromURL(homepage); err != nil {
-		//	return
-		//}
-		//fmt.Printf("homepage : %s\n", homepage)
+		//TODO 直接爬取简略信息， 不用去详细列表中获取, 暂不优化
 		var info *model.MovieInfo
 		if info, err = db.GetMovieInfoByURL(homepage); err != nil {
 			return
