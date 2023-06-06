@@ -5,10 +5,10 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/gocolly/colly/v2"
-	"strings"
 
 	"github.com/metatube-community/metatube-sdk-go/common/parser"
 	"github.com/metatube-community/metatube-sdk-go/model"
@@ -87,28 +87,33 @@ func (db *JavDB) GetMovieInfoByURL(rawURL string) (info *model.MovieInfo, err er
 	c.OnXML(`//nav[@class="panel movie-panel-info"]/div`, func(e *colly.XMLElement) {
 		switch e.ChildText(`.//strong`) {
 		case "番號:":
-			info.Number = e.ChildText(`.//span[1]`)
 			//fmt.Printf("番號: %s\n", e.ChildText(`.//span[1]`))
+			info.Number = e.ChildText(`.//span[1]`)
+
 		case "日期:":
+			//fmt.Printf("日期: %s\n", e.ChildText(`.//span[1]`))
 			fields := strings.Fields(e.ChildText(`.//span[1]`))
 			info.ReleaseDate = parser.ParseDate(fields[len(fields)-1])
-			//fmt.Printf("日期: %s\n", e.ChildText(`.//span[1]`))
+
 		case "片商:":
-			info.Maker = e.ChildText(`.//span[1]/a`)
 			//fmt.Printf("片商-Mark: %s\n", e.ChildText(`.//span[1]/a`))
+			info.Maker = e.ChildText(`.//span[1]/a`)
+
 		case "系列:":
 			//fmt.Printf("系列:Series: %s\n", e.ChildText(`.//span[1]/a`))
 			info.Series = e.ChildText(`.//span[1]/a`)
 		// Genres
 		case "類別:":
+			//fmt.Printf("Genres: %s\n", genres)
 			var genres = e.ChildTexts(`.//span[@class="value"]/a`)
 			info.Genres = append(info.Genres, genres...)
-			//fmt.Printf("Genres: %s\n", genres)
+
 		// Actors
 		case "演員:":
+			//fmt.Printf("演員: %s\n", actors)
 			var actors = e.ChildTexts(`.//span[@class="value"]/a`)
 			info.Actors = append(info.Actors, actors...)
-			//fmt.Printf("演員: %s\n", actors)
+
 		}
 	})
 
