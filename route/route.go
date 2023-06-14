@@ -2,10 +2,10 @@ package route
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
-
+	prelog "github.com/metatube-community/metatube-sdk-go/common/log4gin"
 	"github.com/metatube-community/metatube-sdk-go/engine"
 	"github.com/metatube-community/metatube-sdk-go/errors"
 	V "github.com/metatube-community/metatube-sdk-go/internal/version"
@@ -16,7 +16,7 @@ func New(app *engine.Engine, v auth.Validator) *gin.Engine {
 	r := gin.New()
 	{
 		// register middleware
-		r.Use(logger(), recovery())
+		r.Use(preLogger(), logger(), recovery())
 		// fallback behavior
 		r.NoRoute(notFound())
 		r.NoMethod(notAllowed())
@@ -62,6 +62,10 @@ func New(app *engine.Engine, v auth.Validator) *gin.Engine {
 
 func logger() gin.HandlerFunc {
 	return gin.LoggerWithConfig(gin.LoggerConfig{})
+}
+
+func preLogger() gin.HandlerFunc {
+	return prelog.LoggerWithConfig(prelog.LoggerConfig{})
 }
 
 func recovery() gin.HandlerFunc {
