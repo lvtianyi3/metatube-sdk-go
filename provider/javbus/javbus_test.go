@@ -1,7 +1,9 @@
 package javbus
 
 import (
+	"encoding/csv"
 	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,4 +39,32 @@ func TestJavBus_SearchMovie(t *testing.T) {
 		}
 		t.Logf("%s", data)
 	}
+}
+
+func TestJavBus_GetMovieInfoByID2(t *testing.T) {
+	provider := New()
+
+	// 打开CSV文件以供写入
+	file, err := os.Create("magnet.csv")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	// 创建CSV写入器
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	for _, item := range []string{} {
+		results, err := provider.GetMagnetInfoByID(provider.NormalizeMovieKeyword(item))
+		for _, result := range results {
+
+			// 将结构体写入CSV文件
+			err = writer.Write([]string{result.ID, result.Title, result.Magnet, result.Size})
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	println("结构体已成功写入CSV文件.")
 }

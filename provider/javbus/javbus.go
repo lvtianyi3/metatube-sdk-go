@@ -2,6 +2,7 @@ package javbus
 
 import (
 	"fmt"
+	"html"
 	"net/http"
 	"net/url"
 	"path"
@@ -199,6 +200,49 @@ func (bus *JavBus) SearchMovie(keyword string) (results []*model.MovieSearchResu
 		}
 	}
 	c.Wait()
+	return
+}
+
+type MovieMagnetDetail struct {
+	ID     string `json:"id"`
+	Title  string `json:"title"`
+	Magnet string `json:"magnet"`
+	Size   string `json:"size"`
+}
+
+func (bus *JavBus) GetMagnetInfoByID(id string) (infos []*MovieMagnetDetail, err error) {
+
+	rawURL := fmt.Sprintf(movieURL, id)
+	c := bus.ClonedCollector()
+
+	// Image+Title
+	c.OnXML(`//table[@id="magnet-table"]/tr`, func(e *colly.XMLElement) {
+		title := e.ChildText(".//td/a[0]")
+
+		sub := false
+		links := e.ChildTexts(`.//td/a`)
+		for _, link := range links {
+			if link == "SUB" {
+				sub = true
+				break
+			}
+		}
+		if !sub {
+			return
+		}
+
+		magnet := html.UnescapeString(e.ChildAttr(`.//td/a[0]`, "href"))
+
+		size := e.ChildText(`.//td/a`)
+
+		infos = append(infos, &MovieMagnetDetail{
+			ID:     id,
+			Title:  title,
+			Magnet: magnet,
+			Size:   size,
+		})
+	})
+	err = c.Visit(rawURL)
 	return
 }
 
