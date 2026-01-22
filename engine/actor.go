@@ -93,7 +93,16 @@ func (e *Engine) searchActor(keyword string, provider mt.Provider, fallback bool
 			errors = append(errors, innerErr)
 			continue
 		}
-		results = append(results, innerResults...)
+
+		for _, result := range innerResults {
+			// mapping
+			if e.upsertActorMapping(result.Name, result.Provider, result.ID) != nil {
+				continue
+			}
+			result.ID = result.Name
+			results = append(results, result)
+		}
+
 	}
 	if len(results) == 0 {
 		if len(errors) > 0 {
@@ -141,6 +150,27 @@ func (e *Engine) SearchActorAll(keyword string, fallback bool) (results []*model
 	return
 }
 
+func (e *Engine) getActorMapping(name string) (*model.ActorMapping, error) {
+	var mappings []model.ActorMapping
+	if err := e.db.Where("name = ?", name).Find(&mappings).Error; err != nil {
+		return nil, fmt.Errorf("failed to query actor mappings: %w", err)
+	}
+	// 2. 检查是否找到
+	if len(mappings) == 0 {
+		return nil, fmt.Errorf("no actor mapping found for name: %s", name)
+	}
+
+	// 3. 按 Provider 的 Priority 降序稳定排序（高优先级在前）
+	sort.SliceStable(mappings, func(i, j int) bool {
+		pi := e.MustGetActorProviderByName(mappings[i].Provider).Priority()
+		pj := e.MustGetActorProviderByName(mappings[j].Provider).Priority()
+		return pi > pj // 假设数值越大优先级越高
+	})
+
+	// 4. 返回第一个
+	return &mappings[0], nil
+}
+
 func (e *Engine) getActorInfoFromDB(provider mt.ActorProvider, id string) (*model.ActorInfo, error) {
 	info := &model.ActorInfo{}
 	err := e.db. // Exact match here.
@@ -157,6 +187,14 @@ func (e *Engine) getActorInfoWithCallback(provider mt.ActorProvider, id string, 
 			err = mt.ErrIncompleteMetadata
 		}
 	}()
+
+	defer func() {
+		//hook id
+		if err == nil && info != nil && info.IsValid() {
+			info.ID = info.Name
+		}
+	}()
+
 	if provider.Name() == gfriends.Name {
 		return provider.GetActorInfoByID(id)
 	}
@@ -196,6 +234,15 @@ func (e *Engine) getActorInfoByProviderID(provider mt.ActorProvider, id string, 
 }
 
 func (e *Engine) GetActorInfoByProviderID(pid providerid.ProviderID, lazy bool) (*model.ActorInfo, error) {
+	if pid.Provider == "MetaTube" {
+		mapping, err := e.getActorMapping(pid.ID)
+		if err != nil {
+			return nil, mt.ErrInvalidID
+		}
+		pid.Provider = mapping.Provider
+		pid.ID = mapping.Pid
+	}
+
 	provider, err := e.GetActorProviderByName(pid.Provider)
 	if err != nil {
 		return nil, err
@@ -222,4 +269,26 @@ func (e *Engine) GetActorInfoByURL(rawURL string, lazy bool) (*model.ActorInfo, 
 		return nil, err
 	}
 	return e.getActorInfoByProviderURL(provider, rawURL, lazy)
+}
+
+func (e *Engine) upsertActorMapping(name, provider, pid string) error {
+	if name == "" || provider == "" || pid == "" {
+		return mt.ErrInvalidID // 或直接 return nil，根据业务决定
+	}
+
+	mapping := model.ActorMapping{
+		Name:     name,
+		Provider: provider,
+		Pid:      pid,
+	}
+
+	// 执行 upsert：冲突时更新 Pid
+	err := e.db.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "name"}, {Name: "provider"}}, // 冲突检测列
+		DoUpdates: clause.Assignments(map[string]interface{}{
+			"pid": pid,
+		}),
+	}).Create(&mapping).Error
+
+	return err
 }

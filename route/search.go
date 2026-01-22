@@ -50,10 +50,8 @@ func getSearch(app *engine.Engine, typ searchType) gin.HandlerFunc {
 		case actorSearchType:
 			if isValidURL {
 				results, err = app.GetActorInfoByURL(query.Q, true /* always lazy */)
-			} else if searchAll {
-				results, err = app.SearchActorAll(query.Q, query.Fallback)
 			} else {
-				results, err = app.SearchActor(query.Q, query.Provider, query.Fallback)
+				results, err = app.SearchActorAll(query.Q, query.Fallback)
 			}
 		case movieSearchType:
 			if isValidURL {

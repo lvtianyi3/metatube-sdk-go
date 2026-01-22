@@ -6,6 +6,7 @@ import (
 )
 
 const ActorMetadataTableName = "actor_metadata"
+const ActorMappingsTableName = "actor_mappings"
 
 // ActorSearchResult is a subset of ActorInfo.
 type ActorSearchResult struct {
@@ -65,3 +66,11 @@ func (a *ActorInfo) ToSearchResult() *ActorSearchResult {
 		Images:   a.Images,
 	}
 }
+
+type ActorMapping struct {
+	Name     string `json:"name" gorm:"primaryKey"`
+	Provider string `json:"provider" gorm:"primaryKey"`
+	Pid      string `json:"pid"`
+}
+
+func (ActorMapping) TableName() string { return ActorMappingsTableName }
