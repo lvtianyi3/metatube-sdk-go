@@ -161,10 +161,12 @@ func (e *Engine) getActorInfoWithCallback(provider mt.ActorProvider, id string, 
 		return provider.GetActorInfoByID(id)
 	}
 	defer func() {
-		// gfriends actor image injection for JAV actor providers.
-		if err == nil && info != nil && provider.Language() == language.Japanese {
+		// Fallback to gfriends images only when the provider has none.
+		if err == nil && info != nil &&
+			len(info.Images) == 0 &&
+			provider.Language() == language.Japanese {
 			if gInfo, gErr := e.MustGetActorProviderByName(gfriends.Name).GetActorInfoByID(info.Name); gErr == nil && len(gInfo.Images) > 0 {
-				info.Images = append(gInfo.Images, info.Images...)
+				info.Images = gInfo.Images
 			}
 		}
 	}()

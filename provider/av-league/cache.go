@@ -56,11 +56,8 @@ type actorCache struct {
 }
 
 func defaultCacheDSN() string {
-	dir, err := os.UserCacheDir()
-	if err != nil || dir == "" {
-		dir = os.TempDir()
-	}
-	return filepath.Join(dir, "metatube", "av-league", "cache.db")
+	// Keep cache beside typical local sqlite DB files (same working directory).
+	return "av-league-cache.db"
 }
 
 func openActorCache(dsn string) (*actorCache, error) {
