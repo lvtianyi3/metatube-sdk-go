@@ -56,8 +56,34 @@ type actorCache struct {
 }
 
 func defaultCacheDSN() string {
-	// Keep cache beside typical local sqlite DB files (same working directory).
-	return "av-league-cache.db"
+	const filename = "av-league-cache.db"
+	// Prefer same directory as main sqlite DSN when provided via env (e.g. DSN=/config/metatube.db).
+	if path := sqliteFilePathFromDSN(os.Getenv("DSN")); path != "" {
+		return filepath.Join(filepath.Dir(path), filename)
+	}
+	return filename
+}
+
+func sqliteFilePathFromDSN(dsn string) string {
+	if dsn == "" {
+		return ""
+	}
+	// Skip postgres / memory DSNs.
+	if strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://") ||
+		len(strings.Fields(dsn)) >= 3 {
+		return ""
+	}
+	path := dsn
+	if strings.HasPrefix(path, "file:") {
+		path = strings.TrimPrefix(path, "file:")
+		if i := strings.IndexByte(path, '?'); i >= 0 {
+			path = path[:i]
+		}
+	}
+	if path == "" || path == ":memory:" || strings.Contains(dsn, "mode=memory") {
+		return ""
+	}
+	return path
 }
 
 func openActorCache(dsn string) (*actorCache, error) {

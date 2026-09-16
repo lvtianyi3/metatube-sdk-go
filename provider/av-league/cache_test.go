@@ -12,6 +12,20 @@ import (
 	"github.com/metatube-community/metatube-sdk-go/model"
 )
 
+func TestDefaultCacheDSN_BesideMainDSN(t *testing.T) {
+	t.Setenv("DSN", "/config/metatube.db")
+	assert.Equal(t, filepath.Join("/config", "av-league-cache.db"), defaultCacheDSN())
+
+	t.Setenv("DSN", "file:/data/metatube.db?cache=shared")
+	assert.Equal(t, filepath.Join("/data", "av-league-cache.db"), defaultCacheDSN())
+
+	t.Setenv("DSN", "postgres://u:p@localhost/db")
+	assert.Equal(t, "av-league-cache.db", defaultCacheDSN())
+
+	t.Setenv("DSN", "")
+	assert.Equal(t, "av-league-cache.db", defaultCacheDSN())
+}
+
 func newTestCache(t *testing.T) *actorCache {
 	t.Helper()
 	cache, err := openActorCache(filepath.Join(t.TempDir(), "cache.db"))
