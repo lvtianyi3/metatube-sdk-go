@@ -1,7 +1,10 @@
 package avleague
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"path"
 	"regexp"
@@ -12,6 +15,7 @@ import (
 	"golang.org/x/text/language"
 	dt "gorm.io/datatypes"
 
+	"github.com/metatube-community/metatube-sdk-go/common/fetch"
 	"github.com/metatube-community/metatube-sdk-go/common/parser"
 	"github.com/metatube-community/metatube-sdk-go/model"
 	"github.com/metatube-community/metatube-sdk-go/provider"
@@ -21,6 +25,8 @@ import (
 var (
 	_ provider.ActorProvider = (*AVLeague)(nil)
 	_ provider.ActorSearcher = (*AVLeague)(nil)
+	_ provider.Fetcher       = (*AVLeague)(nil)
+	_ provider.ConfigSetter  = (*AVLeague)(nil)
 )
 
 const (
@@ -36,14 +42,42 @@ const (
 
 type AVLeague struct {
 	*scraper.Scraper
+	cache *actorCache
 }
 
 func New() *AVLeague {
-	return &AVLeague{scraper.NewDefaultScraper(
+	avl := &AVLeague{Scraper: scraper.NewDefaultScraper(
 		Name, baseURL, Priority,
 		language.Japanese,
 		scraper.WithDisableCookies(),
 	)}
+	if cache, err := openActorCache(defaultCacheDSN()); err == nil {
+		avl.cache = cache
+	} else {
+		cacheLogger.Printf("failed to open default cache: %v", err)
+	}
+	return avl
+}
+
+func (avl *AVLeague) SetConfig(config provider.Config) error {
+	if !config.Has(cacheDSNConfigKey) {
+		return nil
+	}
+	dsn, err := config.GetString(cacheDSNConfigKey)
+	if err != nil {
+		return err
+	}
+	cache, err := openActorCache(dsn)
+	if err != nil {
+		cacheLogger.Printf("failed to open cache dsn=%s: %v", dsn, err)
+		return err
+	}
+	if avl.cache != nil {
+		_ = avl.cache.Close()
+	}
+	avl.cache = cache
+	cacheLogger.Printf("cache dsn overridden: %s", dsn)
+	return nil
 }
 
 func (avl *AVLeague) GetActorInfoByID(id string) (info *model.ActorInfo, err error) {
@@ -67,6 +101,21 @@ func (avl *AVLeague) GetActorInfoByURL(rawURL string) (info *model.ActorInfo, er
 		return
 	}
 
+	if cached, ok := avl.cache.getActor(id); ok {
+		return cached, nil
+	}
+
+	info, err = avl.scrapeActorInfoByURL(rawURL, id)
+	if err != nil || info == nil || !info.IsValid() {
+		return
+	}
+
+	avl.cacheImages(info.ID, info.Images)
+	_ = avl.cache.putActor(info)
+	return
+}
+
+func (avl *AVLeague) scrapeActorInfoByURL(rawURL, id string) (info *model.ActorInfo, err error) {
 	info = &model.ActorInfo{
 		ID:       id,
 		Provider: avl.Name(),
@@ -138,6 +187,23 @@ func (avl *AVLeague) GetActorInfoByURL(rawURL string) (info *model.ActorInfo, er
 }
 
 func (avl *AVLeague) SearchActor(keyword string) (results []*model.ActorSearchResult, err error) {
+	if cached, ok := avl.cache.getSearch(keyword); ok {
+		return cached, nil
+	}
+
+	results, err = avl.scrapeSearchActor(keyword)
+	if err != nil || len(results) == 0 {
+		return
+	}
+
+	for _, result := range results {
+		avl.cacheImages(result.ID, result.Images)
+	}
+	_ = avl.cache.putSearch(keyword, results)
+	return
+}
+
+func (avl *AVLeague) scrapeSearchActor(keyword string) (results []*model.ActorSearchResult, err error) {
 	c := avl.ClonedCollector()
 
 	c.OnXML(`//*[@id="contents"]/div/div`, func(e *colly.XMLElement) {
@@ -163,6 +229,66 @@ func (avl *AVLeague) SearchActor(keyword string) (results []*model.ActorSearchRe
 
 	err = c.Visit(fmt.Sprintf(searchURL, url.QueryEscape(keyword)))
 	return
+}
+
+func (avl *AVLeague) Fetch(rawURL string) (*http.Response, error) {
+	if data, contentType, ok := avl.cache.getImage(rawURL); ok {
+		return newCachedHTTPResponse(data, contentType), nil
+	}
+
+	resp, err := fetch.Get(rawURL, fetch.WithReferer(baseURL))
+	if err != nil {
+		return nil, err
+	}
+
+	data, readErr := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if readErr != nil {
+		return nil, readErr
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	_ = avl.cache.putImage(rawURL, "", contentType, data)
+	return newCachedHTTPResponse(data, contentType), nil
+}
+
+func (avl *AVLeague) cacheImages(actorID string, urls []string) {
+	for _, rawURL := range urls {
+		if rawURL == "" {
+			continue
+		}
+		if _, _, ok := avl.cache.getImage(rawURL); ok {
+			continue
+		}
+		cacheLogger.Printf("downloading image: actor_id=%s url=%s", actorID, rawURL)
+		resp, err := fetch.Get(rawURL, fetch.WithReferer(baseURL))
+		if err != nil {
+			cacheLogger.Printf("download image failed: actor_id=%s url=%s err=%v", actorID, rawURL, err)
+			continue
+		}
+		data, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil || len(data) == 0 {
+			cacheLogger.Printf("download image failed: actor_id=%s url=%s err=%v empty=%t", actorID, rawURL, err, len(data) == 0)
+			continue
+		}
+		_ = avl.cache.putImage(rawURL, actorID, resp.Header.Get("Content-Type"), data)
+	}
+}
+
+func newCachedHTTPResponse(data []byte, contentType string) *http.Response {
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	header := make(http.Header)
+	header.Set("Content-Type", contentType)
+	return &http.Response{
+		Status:        "200 OK",
+		StatusCode:    http.StatusOK,
+		Header:        header,
+		Body:          io.NopCloser(bytes.NewReader(data)),
+		ContentLength: int64(len(data)),
+	}
 }
 
 func parseMeasurements(s string) (B, W, H int, Cup string) {
